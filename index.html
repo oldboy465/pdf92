@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizador de PDFs</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <style>
+        body { font-family: 'Courier New', monospace; background-color: black; color: #00FF00; }
+        .file-list { list-style-type: none; padding: 0; }
+        .file-list li { padding: 5px; margin: 5px 0; background: #333333; color: #00FF00; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+        .file-list li.selected { background: #00FF00; color: black; }
+        .controls button { margin: 5px; font-family: 'Courier New', monospace; background-color: #333333; color: #00FF00; border: 1px solid #00FF00; cursor: pointer; }
+        .footer { margin-top: 20px; text-align: center; }
+        .page-range { margin-right: 10px; color: #00FF00; background-color: #333333; border: 1px solid #00FF00; font-family: 'Courier New', monospace; width: 80px; }
+        .delete-btn { background-color: red; color: white; border: none; cursor: pointer; margin-left: 10px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Organizar e Unir PDFs</h1>
+    <input type="file" id="fileInput" multiple accept="application/pdf" style="display: none;">
+    <button id="addFiles">Adicionar PDFs</button>
+    <ul id="fileList" class="file-list"></ul>
+    <div class="controls">
+        <button id="moveUp">SUBIR</button>
+        <button id="moveDown">DESCER</button>
+        <button id="merge">UNIR PDFS</button>
+        <button id="resetApp">REINICIAR</button>
+    </div>
+    <div class="footer">
+        <p>Desenvolvido por Philipe Sampaio</p>
+        <p>Contato no Brasil: (98) 98250-6920 <a href="https://wa.me/5598982506920" target="_blank">wpp: https://wa.me/5598982506920</a></p>
+        <p>Contato no Exterior: +55 98 98250-6920</p>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const addFilesButton = document.getElementById('addFiles');
+        let files = [];
+
+        addFilesButton.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (event) => {
+            files = files.concat(Array.from(event.target.files));
+            updateFileList();
+        });
+
+        document.getElementById('moveUp').addEventListener('click', () => moveFile(-1));
+        document.getElementById('moveDown').addEventListener('click', () => moveFile(1));
+        document.getElementById('merge').addEventListener('click', mergePDFs);
+        document.getElementById('resetApp').addEventListener('click', resetApplication);
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            files.forEach((file, index) => {
+                const li = document.createElement('li');
+                li.dataset.index = index;
+
+                const pageRangeInput = document.createElement('input');
+                pageRangeInput.type = 'text';
+                pageRangeInput.placeholder = '1-3, 5';
+                pageRangeInput.className = 'page-range';
+                pageRangeInput.dataset.index = index;
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Excluir';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.dataset.index = index;
+                deleteBtn.addEventListener('click', () => deleteFile(index));
+
+                li.appendChild(pageRangeInput);
+                li.appendChild(document.createTextNode(file.name));
+                li.appendChild(deleteBtn);
+                fileList.appendChild(li);
+            });
+        }
+
+        function moveFile(direction) {
+            const selectedIndex = Array.from(fileList.children).findIndex(li => li.classList.contains('selected'));
+            if (selectedIndex === -1) return;
+            const newIndex = selectedIndex + direction;
+            if (newIndex < 0 || newIndex >= files.length) return;
+            // Move the file in the files array
+            [files[selectedIndex], files[newIndex]] = [files[newIndex], files[selectedIndex]];
+            updateFileList();
+            fileList.children[newIndex].classList.add('selected');
+        }
+
+        function deleteFile(index) {
+            files.splice(index, 1);
+            updateFileList();
+        }
+
+        async function mergePDFs() {
+            const mergedPdf = await PDFLib.PDFDocument.create();
+            for (const file of files) {
+                const index = files.indexOf(file);
+                const pageRangeInput = document.querySelector(`.page-range[data-index="${index}"]`);
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
+                
+                let copiedPages;
+                if (pageRangeInput.value.trim() === '') {
+                    copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                } else {
+                    const pageRanges = pageRangeInput.value.split(',').map(range => {
+                        const [start, end] = range.split('-').map(Number);
+                        if (end) {
+                            return Array.from({ length: (end - start + 1) }, (_, i) => i + start - 1);
+                        }
+                        return [start - 1];
+                    }).flat();
+                    copiedPages = await mergedPdf.copyPages(pdf, pageRanges);
+                }
+
+                copiedPages.forEach(page => mergedPdf.addPage(page));
+            }
+            const mergedPdfBytes = await mergedPdf.save();
+            download(mergedPdfBytes, 'merged.pdf', 'application/pdf');
+        }
+
+        function download(data, filename, type) {
+            const blob = new Blob([data], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function resetApplication() {
+            files = [];
+            fileList.innerHTML = '';
+            fileInput.value = '';
+        }
+
+        fileList.addEventListener('click', (event) => {
+            const li = event.target.closest('li');
+            if (li && li.tagName === 'LI') {
+                Array.from(fileList.children).forEach(child => child.classList.remove('selected'));
+                li.classList.add('selected');
+            }
+        });
+    </script>
+</body>
+</html>
