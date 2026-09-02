@@ -1,148 +1,1803 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Organizador de PDFs</title>
+    <title>Sistema de Gestão e Unificação de PDFs | DIOF - UEMA</title>
+    <!-- Inclusão da biblioteca PDF-Lib via CDN para processamento no navegador -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <style>
-        body { font-family: 'Courier New', monospace; background-color: black; color: #00FF00; }
-        .file-list { list-style-type: none; padding: 0; }
-        .file-list li { padding: 5px; margin: 5px 0; background: #333333; color: #00FF00; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
-        .file-list li.selected { background: #00FF00; color: black; }
-        .controls button { margin: 5px; font-family: 'Courier New', monospace; background-color: #333333; color: #00FF00; border: 1px solid #00FF00; cursor: pointer; }
-        .footer { margin-top: 20px; text-align: center; }
-        .page-range { margin-right: 10px; color: #00FF00; background-color: #333333; border: 1px solid #00FF00; font-family: 'Courier New', monospace; width: 80px; }
-        .delete-btn { background-color: red; color: white; border: none; cursor: pointer; margin-left: 10px; padding: 5px; }
+        /* ==========================================================================
+           1. VARIÁVEIS DE DESIGN E TEMA GOVTECH INSTITUCIONAL
+           ========================================================================== */
+        :root {
+            /* Paleta Azul e Navy Governamental */
+            --navy-darker: #061224;
+            --navy-dark: #0A1C33;
+            --navy-main: #0F2D52;
+            --navy-light: #1E3A5F;
+            --blue-accent: #1D58A7;
+            --blue-subtle: #E8F0FE;
+            --blue-hover: #154280;
+
+            /* Cores de Destaque e Identidade Visual (UEMA Dourado/Amarelo) */
+            --gold-accent: #D97706;
+            --gold-hover: #B45309;
+            --gold-light: #FEF3C7;
+            --gold-subtle: #FFFBEB;
+
+            /* Tons Neutros e Superfícies */
+            --bg-body: #F1F4F9;
+            --card-bg: #FFFFFF;
+            --card-bg-alt: #F8FAFC;
+            --border-color: #CBD5E1;
+            --border-subtle: #E2E8F0;
+            --border-active: #93C5FD;
+
+            /* Tipografia e Cores de Texto */
+            --text-title: #0F172A;
+            --text-body: #334155;
+            --text-muted: #64748B;
+            --text-light: #94A3B8;
+            --text-white: #FFFFFF;
+
+            /* Estados e Feedback */
+            --success-bg: #ECFDF5;
+            --success-border: #A7F3D0;
+            --success-text: #065F46;
+            --warning-bg: #FFFBEB;
+            --warning-border: #FCD34D;
+            --warning-text: #92400E;
+            --danger-bg: #FEF2F2;
+            --danger-border: #FECACA;
+            --danger-text: #B91C1C;
+
+            /* Geometria e Sombras */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+            --transition-fast: 0.15s ease-in-out;
+            --transition-normal: 0.25s ease-in-out;
+        }
+
+        /* ==========================================================================
+           2. RESET E CONFIGURAÇÕES GLOBAIS
+           ========================================================================== */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-body);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* ==========================================================================
+           3. CABEÇALHO GOVTECH INSTITUCIONAL
+           ========================================================================== */
+        .gov-header {
+            background: linear-gradient(135deg, var(--navy-darker) 0%, var(--navy-main) 100%);
+            color: var(--text-white);
+            padding: 12px 28px;
+            border-bottom: 3px solid var(--gold-accent);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-brand-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-institution-badge {
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            color: #FFFFFF;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.15);
+        }
+
+        .header-title-box h1 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #FFFFFF;
+            line-height: 1.2;
+            letter-spacing: -0.2px;
+        }
+
+        .header-title-box p {
+            font-size: 11.5px;
+            color: #CBD5E1;
+            font-weight: 400;
+            letter-spacing: 0.4px;
+            margin-top: 2px;
+        }
+
+        .header-meta-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .system-pill {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #E2E8F0;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .system-pill-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10B981;
+            border-radius: 50%;
+            box-shadow: 0 0 6px #10B981;
+        }
+
+        /* ==========================================================================
+           4. ESTRUTURA PRINCIPAL (GRID BIDIMENSIONAL COM PERFIL NO TOPO DIREITO)
+           ========================================================================== */
+        .workspace-wrapper {
+            max-width: 1440px;
+            width: 100%;
+            margin: 22px auto;
+            padding: 0 24px;
+            flex: 1;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 390px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        /* Coluna Esquerda: Área de Trabalho do PDF */
+        .workspace-main-column {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            min-width: 0;
+        }
+
+        /* Coluna Direita: Apresentação do Desenvolvedor e Currículo */
+        .workspace-profile-column {
+            position: sticky;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* ==========================================================================
+           5. CARDS DE INDICADORES / ESTATÍSTICAS RÁPIDAS
+           ========================================================================== */
+        .metrics-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            border-left: 4px solid var(--blue-accent);
+            transition: transform var(--transition-fast);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .metric-card.gold-flag {
+            border-left-color: var(--gold-accent);
+        }
+
+        .metric-card.dark-flag {
+            border-left-color: var(--navy-dark);
+        }
+
+        .metric-icon-box {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-md);
+            background: var(--blue-subtle);
+            color: var(--blue-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .metric-card.gold-flag .metric-icon-box {
+            background: var(--gold-light);
+            color: var(--gold-accent);
+        }
+
+        .metric-card.dark-flag .metric-icon-box {
+            background: #E2E8F0;
+            color: var(--navy-dark);
+        }
+
+        .metric-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-title);
+            line-height: 1.2;
+        }
+
+        /* ==========================================================================
+           6. ÁREA DE UPLOAD COMPACTA (ALTURA REDUZIDA CONFORME SOLICITADO)
+           ========================================================================== */
+        .compact-upload-zone {
+            background: var(--card-bg);
+            border: 2px dashed #93C5FD;
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .compact-upload-zone:hover,
+        .compact-upload-zone.drag-active {
+            border-color: var(--blue-accent);
+            background-color: var(--blue-subtle);
+            box-shadow: 0 4px 12px rgba(29, 88, 167, 0.12);
+        }
+
+        .upload-content-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .upload-compact-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--blue-subtle);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--blue-accent);
+            flex-shrink: 0;
+            border: 1px solid #BFDBFE;
+        }
+
+        .upload-text-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .upload-headline {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-title);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-badge {
+            background: #E0E7FF;
+            color: #3730A3;
+            font-size: 10.5px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .upload-subheadline {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .upload-action-btn {
+            background: var(--blue-accent);
+            color: #FFFFFF;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background var(--transition-fast);
+            flex-shrink: 0;
+        }
+
+        .upload-action-btn:hover {
+            background: var(--blue-hover);
+        }
+
+        /* ==========================================================================
+           7. BARRA DE FERRAMENTAS E CONTROLES DE ORDENAÇÃO
+           ========================================================================== */
+        .toolbar-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .toolbar-cluster {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .toolbar-section-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            margin-right: 2px;
+        }
+
+        /* Estilização Geral de Botões */
+        .btn-ui {
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 7px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: #FFFFFF;
+            color: var(--text-body);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all var(--transition-fast);
+            outline: none;
+            text-decoration: none;
+            line-height: 1;
+        }
+
+        .btn-ui:hover {
+            background: #F8FAFC;
+            border-color: var(--blue-accent);
+            color: var(--blue-accent);
+        }
+
+        .btn-ui:active {
+            transform: scale(0.98);
+        }
+
+        .btn-ui.active-mode {
+            background: var(--blue-subtle);
+            border-color: var(--blue-accent);
+            color: var(--blue-accent);
+        }
+
+        .btn-ui-danger {
+            color: var(--danger-text);
+            border-color: var(--danger-border);
+            background: #FFFFFF;
+        }
+
+        .btn-ui-danger:hover {
+            background: var(--danger-bg);
+            border-color: var(--danger-text);
+            color: var(--danger-text);
+        }
+
+        .btn-primary-gold {
+            background: linear-gradient(180deg, #F59E0B 0%, var(--gold-accent) 100%);
+            border: 1px solid var(--gold-hover);
+            color: #FFFFFF;
+            font-size: 13.5px;
+            font-weight: 700;
+            padding: 9px 20px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 2px 5px rgba(217, 119, 6, 0.28);
+            letter-spacing: 0.2px;
+        }
+
+        .btn-primary-gold:hover {
+            background: linear-gradient(180deg, var(--gold-accent) 0%, var(--gold-hover) 100%);
+            color: #FFFFFF;
+            box-shadow: 0 4px 8px rgba(180, 83, 9, 0.32);
+            transform: translateY(-1px);
+        }
+
+        /* ==========================================================================
+           8. LISTAGEM DE DOCUMENTOS PDF
+           ========================================================================== */
+        .pdf-document-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .pdf-row-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-left: 5px solid var(--blue-accent);
+            border-radius: var(--radius-md);
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .pdf-row-item:hover {
+            border-color: var(--border-active);
+            box-shadow: var(--shadow-md);
+        }
+
+        .pdf-row-item.is-selected {
+            background-color: var(--blue-subtle);
+            border-left-color: var(--gold-accent);
+            border-color: #93C5FD;
+        }
+
+        .pdf-item-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pdf-index-bubble {
+            background: var(--navy-dark);
+            color: #FFFFFF;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11.5px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .pdf-row-item.is-selected .pdf-index-bubble {
+            background: var(--gold-accent);
+        }
+
+        .pdf-info-content {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .pdf-name-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-title);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pdf-meta-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 1px;
+        }
+
+        .pdf-range-controller {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            background: var(--card-bg-alt);
+            padding: 4px 8px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .pdf-range-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .pdf-range-input-field {
+            font-family: inherit;
+            font-size: 12px;
+            color: var(--text-title);
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 5px 8px;
+            width: 100px;
+            transition: border-color var(--transition-fast);
+        }
+
+        .pdf-range-input-field:focus {
+            outline: none;
+            border-color: var(--blue-accent);
+            box-shadow: 0 0 0 2px rgba(29, 88, 167, 0.15);
+        }
+
+        .pdf-actions-cluster {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .btn-action-icon {
+            background: #F1F5F9;
+            border: 1px solid #CBD5E1;
+            border-radius: var(--radius-sm);
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: var(--text-body);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .btn-action-icon:hover {
+            background: #E2E8F0;
+            color: var(--navy-dark);
+            border-color: var(--navy-dark);
+        }
+
+        .btn-action-icon.btn-delete:hover {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            border-color: var(--danger-border);
+        }
+
+        .empty-state-card {
+            background: var(--card-bg);
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .empty-icon {
+            width: 44px;
+            height: 44px;
+            color: var(--text-light);
+        }
+
+        /* ==========================================================================
+           9. COLUNA DIREITA: CURRÍCULO, PERFIL E IDENTIDADE DO AUTOR (TOPO DIREITO)
+           ========================================================================== */
+        .profile-executive-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            border-top: 4px solid var(--navy-dark);
+        }
+
+        .profile-card-header {
+            background: linear-gradient(135deg, var(--navy-main) 0%, var(--navy-dark) 100%);
+            padding: 16px 18px;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .profile-card-title {
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #E2E8F0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .profile-institution-tag {
+            background: var(--gold-accent);
+            color: #FFFFFF;
+            font-size: 10.5px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .profile-card-body {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Bloco com Foto e Títulos Principais */
+        .author-identity-block {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .author-photo-frame {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .author-avatar-img {
+            width: 82px;
+            height: 82px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #FFFFFF;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            outline: 2px solid var(--gold-accent);
+            background: #E2E8F0;
+            display: block;
+        }
+
+        .author-initials-view {
+            width: 82px;
+            height: 82px;
+            border-radius: 50%;
+            background: var(--navy-dark);
+            color: #FFFFFF;
+            font-size: 26px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #FFFFFF;
+            outline: 2px solid var(--gold-accent);
+        }
+
+        .author-main-titles {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .author-full-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-title);
+            line-height: 1.2;
+            letter-spacing: -0.2px;
+        }
+
+        .author-role-highlight {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--blue-accent);
+            margin-top: 3px;
+            line-height: 1.35;
+        }
+
+        .author-role-secondary {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+
+        /* Formação Acadêmica Estruturada */
+        .cv-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cv-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--navy-dark);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cv-academic-timeline {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cv-timeline-item {
+            font-size: 11.5px;
+            line-height: 1.4;
+            color: var(--text-body);
+            background: var(--card-bg-alt);
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--blue-accent);
+        }
+
+        .cv-timeline-item.mestrado {
+            border-left-color: var(--gold-accent);
+            background: var(--gold-subtle);
+        }
+
+        .cv-timeline-item strong {
+            color: var(--text-title);
+            display: block;
+            font-size: 11.5px;
+        }
+
+        .cv-bio-paragraph {
+            font-size: 11.5px;
+            color: var(--text-body);
+            line-height: 1.55;
+            text-align: justify;
+            background: #F8FAFC;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+        }
+
+        /* Badges de Contato e Conexão */
+        .contacts-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .contact-entry-link {
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 7px 12px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all var(--transition-fast);
+            border: 1px solid transparent;
+        }
+
+        .contact-entry-link.wpp-btn {
+            background: #ECFDF5;
+            color: #065F46;
+            border-color: #A7F3D0;
+        }
+
+        .contact-entry-link.wpp-btn:hover {
+            background: #D1FAE5;
+            box-shadow: 0 2px 4px rgba(6, 95, 70, 0.12);
+        }
+
+        .contact-entry-link.phone-badge {
+            background: #F1F5F9;
+            color: var(--text-body);
+            border-color: #E2E8F0;
+        }
+
+        .contact-entry-link.phone-badge:hover {
+            background: #E2E8F0;
+        }
+
+        /* Notificação Toast */
+        .toast-notification {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--navy-dark);
+            color: #FFFFFF;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(12px);
+            transition: all var(--transition-normal);
+            border-left: 4px solid var(--gold-accent);
+        }
+
+        .toast-notification.toast-active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        /* Rodapé Minimalista */
+        .footer-gov {
+            background: #FFFFFF;
+            border-top: 1px solid var(--border-subtle);
+            padding: 14px 28px;
+            margin-top: 30px;
+            color: var(--text-muted);
+            font-size: 11.5px;
+            text-align: center;
+        }
+
+        /* ==========================================================================
+           10. ADAPTABILIDADE RESPONSIVA (MOBILE E TABLETS)
+           ========================================================================== */
+        @media (max-width: 1080px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .workspace-profile-column {
+                position: static;
+                order: -1; /* Mantém o perfil visível no topo também no mobile */
+            }
+
+            .metrics-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .header-inner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .compact-upload-zone {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+
+            .upload-content-left {
+                flex-direction: column;
+            }
+
+            .upload-action-btn {
+                justify-content: center;
+            }
+
+            .toolbar-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .toolbar-cluster {
+                justify-content: stretch;
+            }
+
+            .toolbar-cluster .btn-ui {
+                flex: 1;
+                justify-content: center;
+            }
+
+            .pdf-row-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .pdf-range-controller {
+                justify-content: space-between;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>Organizar e Unir PDFs</h1>
-    <input type="file" id="fileInput" multiple accept="application/pdf" style="display: none;">
-    <button id="addFiles">Adicionar PDFs</button>
-    <ul id="fileList" class="file-list"></ul>
-    <div class="controls">
-        <button id="moveUp">SUBIR</button>
-        <button id="moveDown">DESCER</button>
-        <button id="merge">UNIR PDFS</button>
-        <button id="resetApp">REINICIAR</button>
-    </div>
-    <div class="footer">
-        <p>Desenvolvido por Philipe Sampaio</p>
-        <p>Contato no Brasil: (98) 98250-6920 <a href="https://wa.me/5598982506920" target="_blank">wpp: https://wa.me/5598982506920</a></p>
-        <p>Contato no Exterior: +55 98 98250-6920</p>
+
+    <!-- ========================================================================
+         CABEÇALHO INSTITUCIONAL GOVTECH (UEMA - DIOF)
+         ======================================================================== -->
+    <header class="gov-header" role="banner">
+        <div class="header-inner">
+            <div class="header-brand-group">
+                <div class="header-institution-badge" aria-label="Universidade Estadual do Maranhão">UEMA</div>
+                <div class="header-title-box">
+                    <h1>Organizador e Unificador Institucional de PDFs</h1>
+                    <p>Coordenação de Planejamento e Orçamento - CPO - DIOF - PROPLAD</p>
+                </div>
+            </div>
+            <div class="header-meta-group">
+                <div class="system-pill" title="Processamento 100% no cliente sem envio de dados para servidores externos">
+                    <span class="system-pill-dot"></span>
+                    <span>Ambiente Seguro • Processamento Local Client-Side</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================================================
+         ÁREA DE TRABALHO PRINCIPAL (LAYOUT COM PERFIL IMEDIATO NO TOPO DIREITO)
+         ======================================================================== -->
+    <main class="workspace-wrapper" role="main">
+        <div class="dashboard-grid">
+
+            <!-- ================================================================
+                 COLUNA ESQUERDA: SISTEMA OPERACIONAL DE MANIPULAÇÃO DE PDFS
+                 ================================================================ -->
+            <section class="workspace-main-column" aria-label="Área Operacional do PDF">
+
+                <!-- 1. Barra de Estatísticas Rápidas -->
+                <div class="metrics-bar">
+                    <div class="metric-card">
+                        <div class="metric-icon-box">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Arquivos na Fila</span>
+                            <span class="metric-value" id="statFilesCount">0</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card gold-flag">
+                        <div class="metric-icon-box">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <polyline points="9 11 12 14 22 4"></polyline>
+                            </svg>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Status da Operação</span>
+                            <span class="metric-value" id="statOperationStatus" style="font-size: 14px;">Pronto</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card dark-flag">
+                        <div class="metric-icon-box">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 14 14"></polyline>
+                            </svg>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Tamanho Estimado</span>
+                            <span class="metric-value" id="statEstimatedSize">0 KB</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Botão/Caixa de Upload Compacta (Altura Reduzida) -->
+                <input type="file" id="pdfFileInput" multiple accept="application/pdf" style="display: none;">
+                <div class="compact-upload-zone" id="dropArea" title="Clique ou arraste arquivos PDF para adicionar">
+                    <div class="upload-content-left">
+                        <div class="upload-compact-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <div class="upload-text-box">
+                            <div class="upload-headline">
+                                <span>Adicionar ou Arrastar Documentos PDF</span>
+                                <span class="upload-badge">Multi-upload</span>
+                            </div>
+                            <span class="upload-subheadline">Selecione arquivos do seu computador para mesclar ou reordenar na ordem desejada.</span>
+                        </div>
+                    </div>
+                    <button type="button" class="upload-action-btn" id="browseFilesBtn">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Selecionar PDFs
+                    </button>
+                </div>
+
+                <!-- 3. Barra de Controles, Filtros e Ordenação -->
+                <div class="toolbar-panel">
+                    <div class="toolbar-cluster">
+                        <span class="toolbar-section-label">Ordenar:</span>
+                        <button type="button" class="btn-ui" id="btnSortAsc" title="Organizar arquivos em ordem alfabética de A a Z">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M3 12h12M3 18h6"/>
+                            </svg>
+                            A → Z (Crescente)
+                        </button>
+                        <button type="button" class="btn-ui" id="btnSortDesc" title="Organizar arquivos em ordem alfabética de Z a A">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h6M3 12h12M3 18h18"/>
+                            </svg>
+                            Z → A (Decrescente)
+                        </button>
+                        <button type="button" class="btn-ui" id="btnSortInvert" title="Inverter a ordem atual da lista">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="17 1 21 5 17 9"></polyline>
+                                <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                                <polyline points="7 23 3 19 7 15"></polyline>
+                                <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                            </svg>
+                            Inverter
+                        </button>
+                    </div>
+
+                    <div class="toolbar-cluster">
+                        <span class="toolbar-section-label">Item:</span>
+                        <button type="button" class="btn-ui" id="btnMoveUp" title="Subir item selecionado">▲ Subir</button>
+                        <button type="button" class="btn-ui" id="btnMoveDown" title="Descer item selecionado">▼ Descer</button>
+                        <button type="button" class="btn-ui btn-ui-danger" id="btnResetQueue" title="Limpar todos os documentos da lista">Limpar Fila</button>
+                    </div>
+
+                    <div class="toolbar-cluster">
+                        <button type="button" class="btn-ui btn-primary-gold" id="btnExecuteMerge" title="Processar e unificar todos os PDFs da lista">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            UNIR E GERAR PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. Lista Dinâmica de Documentos -->
+                <ul class="pdf-document-list" id="documentQueueList" aria-label="Lista de Documentos PDF">
+                    <li class="empty-state-card" id="emptyQueueMessage">
+                        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                            <polyline points="13 2 13 9 20 9"></polyline>
+                        </svg>
+                        <strong style="color: var(--text-title); font-size: 13.5px;">Nenhum arquivo adicionado ainda</strong>
+                        <span>Utilize o botão acima ou arraste seus PDFs para começar a organizar.</span>
+                    </li>
+                </ul>
+
+            </section>
+
+            <!-- ================================================================
+                 COLUNA DIREITA: CURRÍCULO E APRESENTAÇÃO DO DESENVOLVEDOR (TOPO)
+                 ================================================================ -->
+            <aside class="workspace-profile-column" aria-label="Currículo e Autoria do Desenvolvedor">
+                <div class="profile-executive-card">
+                    <div class="profile-card-header">
+                        <span class="profile-card-title">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            INFO TÉCNICA
+                        </span>
+                        <span class="profile-institution-tag">CPO</span>
+                    </div>
+
+                    <div class="profile-card-body">
+                        <!-- Identidade, Foto e Cargos -->
+                        <div class="author-identity-block">
+                            <div class="author-photo-frame">
+                                <img
+                                    id="profilePhotoElement"
+                                    class="author-avatar-img"
+                                    src="https://instagram.fbsb9-1.fna.fbcdn.net/v/t51.2885-19/508390968_18404773867104552_1357720457647700494_n.jpg?stp=dst-jpg_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMyIn0&_nc_ht=instagram.fbsb9-1.fna.fbcdn.net&_nc_cat=100&_nc_oc=Q6cZ2gFgTvAQmeB-dRIfATstnMcKu1C-2rXA3ObsUuxCBZO_nTjywmv7HOQmbtZTP8PWDXU&_nc_ohc=YNJdkxRrHBkQ7kNvwEipuV-&_nc_gid=KaHROlagVkhJMkKqhyL6QA&edm=AP4sbd4BAAAA&ccb=7-5&oh=00_AQK8QJ3KsbVdhAmMEGY3CPa151vOtQ5P6Or5XRe5X86ASQ&oe=6A9E1490&_nc_sid=7a9f4b"
+                                    alt="Foto de Philipe Sampaio Lima"
+                                    onerror="this.style.display='none'; document.getElementById('authorFallback').style.display='flex';"
+                                >
+                                <div id="authorFallback" class="author-initials-view" style="display: none;">PSL</div>
+                            </div>
+                            <div class="author-main-titles">
+                                <h2 class="author-full-name">Philipe Sampaio Lima</h2>
+                                <div class="author-role-highlight">Coordenador de Planejamento e Orçamento — DIOF / UEMA</div>
+                                <div class="author-role-secondary">Professor Universitário de Administração — CEST</div>
+                            </div>
+                        </div>
+
+                        <!-- Formação Acadêmica Oficial -->
+                        <div class="cv-section">
+                            <div class="cv-section-title">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                                    <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                                </svg>
+                                Titulação & Formação Acadêmica
+                            </div>
+                            <ul class="cv-academic-timeline">
+                                <li class="cv-timeline-item mestrado">
+                                    <strong>Mestre em Engenharia de Computação e Sistemas (2024)</strong>
+                                    PECS — Universidade Estadual do Maranhão (UEMA).
+                                </li>
+                                <li class="cv-timeline-item">
+                                    <strong>Especialista em Estatística Aplicada (2019)</strong>
+                                    Universidade Estadual do Maranhão (UEMA).
+                                </li>
+                                <li class="cv-timeline-item">
+                                    <strong>Bacharel em Administração (2017)</strong>
+                                    Universidade Ceuma (CEUMA).
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Resumo Biográfico e Atuação Profissional -->
+                        <div class="cv-section">
+                            <div class="cv-section-title">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                </svg>
+                                Perfil Profissional & Pesquisa
+                            </div>
+                            <p class="cv-bio-paragraph">
+                                Mestre em Engenharia de Computação e Sistemas pelo Programa de Pós-Graduação Stricto Sensu Engenharia de Computação e Sistemas - PECS pela Universidade Estadual do Maranhão (2024). Especialista em Estatística pela Universidade Estadual do Maranhão (2019). Bacharel em Administração pela Universidade Ceuma (2017). Desenvolve atividades voltadas para Consultorias em Gestão, pesquisas em Administração e Métodos Quantitativos Avançados e Análise de Dados. Exerce o cargo de Coordenador de Planejamento e Orçamento da Universidade Estadual do Maranhão (2024 - atualmente).
+                            </p>
+                        </div>
+
+                        <!-- Canais Diretos de Contato -->
+                        <div class="contacts-wrapper">
+                            <a href="https://wa.me/5598982506920" target="_blank" rel="noopener noreferrer" class="contact-entry-link wpp-btn" title="Conversar diretamente via WhatsApp">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                </svg>
+                                WhatsApp: (98) 98250-6920
+                            </a>
+                            <div class="contact-entry-link phone-badge">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                </svg>
+                                Contato Nacional: (98) 98250-6920
+                            </div>
+                            <div class="contact-entry-link phone-badge">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                </svg>
+                                Exterior: +55 98 98250-6920
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </main>
+
+    <!-- ========================================================================
+         NOTIFICAÇÃO FLUTUANTE (TOAST FEEDBACK)
+         ======================================================================== -->
+    <div id="toastFeedback" class="toast-notification" role="status" aria-live="polite">
+        <span id="toastMessage">Operação realizada com sucesso!</span>
     </div>
 
+    <!-- ========================================================================
+         RODAPÉ INSTITUCIONAL
+         ======================================================================== -->
+    <footer class="footer-gov" role="contentinfo">
+        <p>Sistema de Apoio Administrativo e Manipulação de PDFs • Desenvolvido por <strong>Philipe Sampaio Lima</strong></p>
+        <p style="margin-top: 3px; font-size: 11px;">Universidade Estadual do Maranhão — UEMA • Divisão de Operações Financeiras e Orçamento (DIOF)</p>
+    </footer>
+
+    <!-- ========================================================================
+         LÓGICA JAVASCRIPT: CONTROLES, ORDENAÇÃO E INTEGRAÇÃO PDF-LIB
+         ======================================================================== -->
     <script>
-        const fileInput = document.getElementById('fileInput');
-        const fileList = document.getElementById('fileList');
-        const addFilesButton = document.getElementById('addFiles');
-        let files = [];
+        /**
+         * SISTEMA DE GESTÃO E UNIFICAÇÃO DE DOCUMENTOS PDF
+         * Arquitetura em memória: array de objetos { id, file, range, size }
+         * Autor: Philipe Sampaio Lima
+         */
+        (function() {
+            'use strict';
 
-        addFilesButton.addEventListener('click', () => fileInput.click());
+            // Elementos DOM do Workspace
+            const pdfFileInput = document.getElementById('pdfFileInput');
+            const dropArea = document.getElementById('dropArea');
+            const browseFilesBtn = document.getElementById('browseFilesBtn');
+            const documentQueueList = document.getElementById('documentQueueList');
+            const emptyQueueMessage = document.getElementById('emptyQueueMessage');
 
-        fileInput.addEventListener('change', (event) => {
-            files = files.concat(Array.from(event.target.files));
-            updateFileList();
-        });
+            // Elementos de Estatística e Status
+            const statFilesCount = document.getElementById('statFilesCount');
+            const statOperationStatus = document.getElementById('statOperationStatus');
+            const statEstimatedSize = document.getElementById('statEstimatedSize');
+            const toastFeedback = document.getElementById('toastFeedback');
+            const toastMessage = document.getElementById('toastMessage');
 
-        document.getElementById('moveUp').addEventListener('click', () => moveFile(-1));
-        document.getElementById('moveDown').addEventListener('click', () => moveFile(1));
-        document.getElementById('merge').addEventListener('click', mergePDFs);
-        document.getElementById('resetApp').addEventListener('click', resetApplication);
+            // Botões de Ação na Toolbar
+            const btnSortAsc = document.getElementById('btnSortAsc');
+            const btnSortDesc = document.getElementById('btnSortDesc');
+            const btnSortInvert = document.getElementById('btnSortInvert');
+            const btnMoveUp = document.getElementById('btnMoveUp');
+            const btnMoveDown = document.getElementById('btnMoveDown');
+            const btnResetQueue = document.getElementById('btnResetQueue');
+            const btnExecuteMerge = document.getElementById('btnExecuteMerge');
 
-        function updateFileList() {
-            fileList.innerHTML = '';
-            files.forEach((file, index) => {
-                const li = document.createElement('li');
-                li.dataset.index = index;
+            // Estado em Memória da Lista de Arquivos
+            let documentQueue = [];
+            let currentSelectedIndex = -1;
+            let isProcessing = false;
 
-                const pageRangeInput = document.createElement('input');
-                pageRangeInput.type = 'text';
-                pageRangeInput.placeholder = '1-3, 5';
-                pageRangeInput.className = 'page-range';
-                pageRangeInput.dataset.index = index;
+            /**
+             * Utilitário para exibir mensagens temporárias (Toast)
+             * @param {string} msg Mensagem a ser exibida
+             * @param {number} duration Duração em milissegundos
+             */
+            function showToast(msg, duration = 3000) {
+                if (!toastFeedback || !toastMessage) return;
+                toastMessage.textContent = msg;
+                toastFeedback.classList.add('toast-active');
+                setTimeout(() => {
+                    toastFeedback.classList.remove('toast-active');
+                }, duration);
+            }
 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = 'Excluir';
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.dataset.index = index;
-                deleteBtn.addEventListener('click', () => deleteFile(index));
+            /**
+             * Formata bytes em unidades legíveis (KB, MB, GB)
+             * @param {number} bytes Tamanho do arquivo em bytes
+             * @returns {string} Texto formatado
+             */
+            function formatBytes(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            }
 
-                li.appendChild(pageRangeInput);
-                li.appendChild(document.createTextNode(file.name));
-                li.appendChild(deleteBtn);
-                fileList.appendChild(li);
+            /**
+             * Dispara a seleção de arquivos locais
+             */
+            browseFilesBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                pdfFileInput.click();
             });
-        }
 
-        function moveFile(direction) {
-            const selectedIndex = Array.from(fileList.children).findIndex(li => li.classList.contains('selected'));
-            if (selectedIndex === -1) return;
-            const newIndex = selectedIndex + direction;
-            if (newIndex < 0 || newIndex >= files.length) return;
-            // Move the file in the files array
-            [files[selectedIndex], files[newIndex]] = [files[newIndex], files[selectedIndex]];
-            updateFileList();
-            fileList.children[newIndex].classList.add('selected');
-        }
+            dropArea.addEventListener('click', () => {
+                pdfFileInput.click();
+            });
 
-        function deleteFile(index) {
-            files.splice(index, 1);
-            updateFileList();
-        }
+            // Tratamento de Arrastar e Soltar (Drag and Drop)
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.add('drag-active');
+            });
 
-        async function mergePDFs() {
-            const mergedPdf = await PDFLib.PDFDocument.create();
-            for (const file of files) {
-                const index = files.indexOf(file);
-                const pageRangeInput = document.querySelector(`.page-range[data-index="${index}"]`);
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
-                
-                let copiedPages;
-                if (pageRangeInput.value.trim() === '') {
-                    copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-                } else {
-                    const pageRanges = pageRangeInput.value.split(',').map(range => {
-                        const [start, end] = range.split('-').map(Number);
-                        if (end) {
-                            return Array.from({ length: (end - start + 1) }, (_, i) => i + start - 1);
-                        }
-                        return [start - 1];
-                    }).flat();
-                    copiedPages = await mergedPdf.copyPages(pdf, pageRanges);
+            dropArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.remove('drag-active');
+            });
+
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.remove('drag-active');
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    processIncomingFiles(Array.from(e.dataTransfer.files));
+                }
+            });
+
+            pdfFileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    processIncomingFiles(Array.from(e.target.files));
+                }
+            });
+
+            /**
+             * Processa os arquivos recebidos e valida a extensão PDF
+             * @param {File[]} fileList Lista de arquivos recebidos
+             */
+            function processIncomingFiles(fileList) {
+                const validPdfs = fileList.filter(file => {
+                    const isPdfMime = file.type === 'application/pdf';
+                    const isPdfExt = file.name.toLowerCase().endsWith('.pdf');
+                    return isPdfMime || isPdfExt;
+                });
+
+                if (validPdfs.length === 0) {
+                    showToast('Por favor, selecione arquivos válidos no formato PDF.');
+                    return;
                 }
 
-                copiedPages.forEach(page => mergedPdf.addPage(page));
+                // Sincroniza dados já existentes antes de anexar novos
+                syncInputValues();
+
+                validPdfs.forEach(file => {
+                    documentQueue.push({
+                        id: 'pdf_' + Math.random().toString(36).substr(2, 9),
+                        file: file,
+                        name: file.name,
+                        size: file.size,
+                        range: ''
+                    });
+                });
+
+                renderQueue();
+                pdfFileInput.value = '';
+                showToast(`${validPdfs.length} arquivo(s) PDF adicionado(s) com sucesso.`);
             }
-            const mergedPdfBytes = await mergedPdf.save();
-            download(mergedPdfBytes, 'merged.pdf', 'application/pdf');
-        }
 
-        function download(data, filename, type) {
-            const blob = new Blob([data], { type });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function resetApplication() {
-            files = [];
-            fileList.innerHTML = '';
-            fileInput.value = '';
-        }
-
-        fileList.addEventListener('click', (event) => {
-            const li = event.target.closest('li');
-            if (li && li.tagName === 'LI') {
-                Array.from(fileList.children).forEach(child => child.classList.remove('selected'));
-                li.classList.add('selected');
+            /**
+             * Garante que valores digitados nos inputs de página sejam salvos no estado
+             */
+            function syncInputValues() {
+                const inputs = documentQueueList.querySelectorAll('.pdf-range-input-field');
+                inputs.forEach(input => {
+                    const idx = parseInt(input.dataset.index, 10);
+                    if (documentQueue[idx]) {
+                        documentQueue[idx].range = input.value.trim();
+                    }
+                });
             }
-        });
+
+            /**
+             * Renderiza a lista de documentos e atualiza o painel de estatísticas
+             */
+            function renderQueue() {
+                documentQueueList.innerHTML = '';
+
+                // Atualização dos Indicadores de Topo
+                const totalFiles = documentQueue.length;
+                statFilesCount.textContent = totalFiles;
+
+                const totalBytes = documentQueue.reduce((acc, curr) => acc + (curr.size || 0), 0);
+                statEstimatedSize.textContent = formatBytes(totalBytes);
+
+                if (totalFiles === 0) {
+                    documentQueueList.appendChild(emptyQueueMessage);
+                    statOperationStatus.textContent = 'Aguardando PDFs';
+                    currentSelectedIndex = -1;
+                    return;
+                }
+
+                statOperationStatus.textContent = `${totalFiles} arquivo(s) na fila`;
+
+                documentQueue.forEach((item, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'pdf-row-item';
+                    if (index === currentSelectedIndex) {
+                        li.classList.add('is-selected');
+                    }
+                    li.dataset.index = index;
+
+                    // Lado Esquerdo: Índice e Identificação do Arquivo
+                    const leftContainer = document.createElement('div');
+                    leftContainer.className = 'pdf-item-left';
+
+                    const indexBubble = document.createElement('div');
+                    indexBubble.className = 'pdf-index-bubble';
+                    indexBubble.textContent = index + 1;
+
+                    const infoContainer = document.createElement('div');
+                    infoContainer.className = 'pdf-info-content';
+
+                    const titleSpan = document.createElement('span');
+                    titleSpan.className = 'pdf-name-text';
+                    titleSpan.textContent = item.name;
+                    titleSpan.title = item.name;
+
+                    const metaSpan = document.createElement('span');
+                    metaSpan.className = 'pdf-meta-text';
+                    metaSpan.innerHTML = `<span>Tamanho: ${formatBytes(item.size)}</span> • <span>PDF Document</span>`;
+
+                    infoContainer.appendChild(titleSpan);
+                    infoContainer.appendChild(metaSpan);
+
+                    leftContainer.appendChild(indexBubble);
+                    leftContainer.appendChild(infoContainer);
+
+                    // Centro: Controle de Seleção de Páginas Específicas
+                    const rangeContainer = document.createElement('div');
+                    rangeContainer.className = 'pdf-range-controller';
+
+                    const rangeLabel = document.createElement('label');
+                    rangeLabel.className = 'pdf-range-label';
+                    rangeLabel.textContent = 'Páginas:';
+                    rangeLabel.htmlFor = `rangeInput_${index}`;
+
+                    const rangeInput = document.createElement('input');
+                    rangeInput.type = 'text';
+                    rangeInput.id = `rangeInput_${index}`;
+                    rangeInput.className = 'pdf-range-input-field';
+                    rangeInput.placeholder = 'Ex: 1-3, 5';
+                    rangeInput.value = item.range || '';
+                    rangeInput.dataset.index = index;
+                    rangeInput.title = 'Digite intervalos de páginas separados por vírgula. Deixe em branco para incluir todas.';
+
+                    rangeInput.addEventListener('input', (ev) => {
+                        documentQueue[index].range = ev.target.value;
+                    });
+
+                    rangeContainer.appendChild(rangeLabel);
+                    rangeContainer.appendChild(rangeInput);
+
+                    // Lado Direito: Ações por Arquivo (Subir, Descer, Excluir)
+                    const actionsContainer = document.createElement('div');
+                    actionsContainer.className = 'pdf-actions-cluster';
+
+                    const btnUp = document.createElement('button');
+                    btnUp.type = 'button';
+                    btnUp.className = 'btn-action-icon';
+                    btnUp.title = 'Mover este documento para cima';
+                    btnUp.innerHTML = '▲';
+                    btnUp.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        shiftDocumentPosition(index, -1);
+                    });
+
+                    const btnDown = document.createElement('button');
+                    btnDown.type = 'button';
+                    btnDown.className = 'btn-action-icon';
+                    btnDown.title = 'Mover este documento para baixo';
+                    btnDown.innerHTML = '▼';
+                    btnDown.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        shiftDocumentPosition(index, 1);
+                    });
+
+                    const btnDelete = document.createElement('button');
+                    btnDelete.type = 'button';
+                    btnDelete.className = 'btn-action-icon btn-delete';
+                    btnDelete.title = 'Remover este documento da fila';
+                    btnDelete.innerHTML = '✕';
+                    btnDelete.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        removeSingleDocument(index);
+                    });
+
+                    actionsContainer.appendChild(btnUp);
+                    actionsContainer.appendChild(btnDown);
+                    actionsContainer.appendChild(btnDelete);
+
+                    // Montagem do Item
+                    li.appendChild(leftContainer);
+                    li.appendChild(rangeContainer);
+                    li.appendChild(actionsContainer);
+
+                    // Evento de Seleção Visual
+                    li.addEventListener('click', () => {
+                        currentSelectedIndex = index;
+                        const allRows = documentQueueList.querySelectorAll('.pdf-row-item');
+                        allRows.forEach(row => row.classList.remove('is-selected'));
+                        li.classList.add('is-selected');
+                    });
+
+                    documentQueueList.appendChild(li);
+                });
+            }
+
+            /**
+             * Move a posição de um documento na fila (-1 ou +1)
+             * @param {number} index Índice atual do item
+             * @param {number} delta Variação de posição
+             */
+            function shiftDocumentPosition(index, delta) {
+                syncInputValues();
+                const target = index + delta;
+                if (target < 0 || target >= documentQueue.length) return;
+
+                const temp = documentQueue[index];
+                documentQueue[index] = documentQueue[target];
+                documentQueue[target] = temp;
+
+                currentSelectedIndex = target;
+                renderQueue();
+            }
+
+            /**
+             * Remove um documento individual pelo índice
+             * @param {number} index Índice do item a remover
+             */
+            function removeSingleDocument(index) {
+                syncInputValues();
+                const removedName = documentQueue[index].name;
+                documentQueue.splice(index, 1);
+                if (currentSelectedIndex === index) {
+                    currentSelectedIndex = -1;
+                } else if (currentSelectedIndex > index) {
+                    currentSelectedIndex--;
+                }
+                renderQueue();
+                showToast(`Arquivo "${removedName}" removido da fila.`);
+            }
+
+            // ====================================================================
+            // BOTÕES DE CONTROLE DA BARRA SUPERIOR (ORDENAÇÃO E MOVIMENTAÇÃO)
+            // ====================================================================
+
+            // 1. Ordenação Crescente (A → Z)
+            btnSortAsc.addEventListener('click', () => {
+                if (documentQueue.length < 2) {
+                    showToast('Adicione ao menos 2 arquivos para ordenar.');
+                    return;
+                }
+                syncInputValues();
+                documentQueue.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true, sensitivity: 'base' }));
+                currentSelectedIndex = -1;
+                renderQueue();
+                showToast('Arquivos ordenados alfabeticamente: A → Z (Crescente).');
+            });
+
+            // 2. Ordenação Decrescente (Z → A)
+            btnSortDesc.addEventListener('click', () => {
+                if (documentQueue.length < 2) {
+                    showToast('Adicione ao menos 2 arquivos para ordenar.');
+                    return;
+                }
+                syncInputValues();
+                documentQueue.sort((a, b) => b.name.localeCompare(a.name, 'pt-BR', { numeric: true, sensitivity: 'base' }));
+                currentSelectedIndex = -1;
+                renderQueue();
+                showToast('Arquivos ordenados alfabeticamente: Z → A (Decrescente).');
+            });
+
+            // 3. Inverter Ordem Atual
+            btnSortInvert.addEventListener('click', () => {
+                if (documentQueue.length < 2) {
+                    showToast('Adicione ao menos 2 arquivos para inverter.');
+                    return;
+                }
+                syncInputValues();
+                documentQueue.reverse();
+                currentSelectedIndex = -1;
+                renderQueue();
+                showToast('Ordem da fila invertida com sucesso.');
+            });
+
+            // 4. Subir Item Selecionado
+            btnMoveUp.addEventListener('click', () => {
+                if (currentSelectedIndex === -1) {
+                    showToast('Selecione primeiro um documento na lista para movimentar.');
+                    return;
+                }
+                shiftDocumentPosition(currentSelectedIndex, -1);
+            });
+
+            // 5. Descer Item Selecionado
+            btnMoveDown.addEventListener('click', () => {
+                if (currentSelectedIndex === -1) {
+                    showToast('Selecione primeiro um documento na lista para movimentar.');
+                    return;
+                }
+                shiftDocumentPosition(currentSelectedIndex, 1);
+            });
+
+            // 6. Limpar Toda a Fila de Documentos
+            btnResetQueue.addEventListener('click', () => {
+                if (documentQueue.length === 0) return;
+                if (confirm('Deseja realmente remover todos os documentos da lista?')) {
+                    documentQueue = [];
+                    currentSelectedIndex = -1;
+                    renderQueue();
+                    showToast('A lista de arquivos foi completamente limpa.');
+                }
+            });
+
+            // ====================================================================
+            // LÓGICA DE UNIFICAÇÃO E PROCESSAMENTO DOS PDFS COM PDF-LIB
+            // ====================================================================
+
+            /**
+             * Converte uma string de páginas/intervalos (ex: "1-3, 5, 8-10") em array de índices base-0
+             * @param {string} rangeText Texto digitado pelo usuário
+             * @param {number} totalPages Total de páginas do PDF atual
+             * @returns {number[]} Array de índices base 0 das páginas solicitadas
+             */
+            function parseSelectedPageRanges(rangeText, totalPages) {
+                if (!rangeText || rangeText.trim() === '') {
+                    // Sem restrição: seleciona todas as páginas disponíveis
+                    const allIndices = [];
+                    for (let i = 0; i < totalPages; i++) {
+                        allIndices.push(i);
+                    }
+                    return allIndices;
+                }
+
+                const tokens = rangeText.split(',').map(t => t.trim()).filter(Boolean);
+                const resultIndices = [];
+
+                tokens.forEach(token => {
+                    if (token.includes('-')) {
+                        const parts = token.split('-');
+                        const start = parseInt(parts[0], 10);
+                        const end = parseInt(parts[1], 10);
+
+                        if (!isNaN(start) && !isNaN(end)) {
+                            const minPage = Math.min(start, end);
+                            const maxPage = Math.max(start, end);
+                            for (let p = minPage; p <= maxPage; p++) {
+                                const zeroBaseIndex = p - 1;
+                                if (zeroBaseIndex >= 0 && zeroBaseIndex < totalPages) {
+                                    resultIndices.push(zeroBaseIndex);
+                                }
+                            }
+                        }
+                    } else {
+                        const singlePage = parseInt(token, 10);
+                        const zeroBaseIndex = singlePage - 1;
+                        if (!isNaN(singlePage) && zeroBaseIndex >= 0 && zeroBaseIndex < totalPages) {
+                            resultIndices.push(zeroBaseIndex);
+                        }
+                    }
+                });
+
+                // Se houver erro de sintaxe e nenhuma página for coletada, adota todas como salvaguarda
+                if (resultIndices.length === 0) {
+                    for (let i = 0; i < totalPages; i++) {
+                        resultIndices.push(i);
+                    }
+                }
+
+                return resultIndices;
+            }
+
+            /**
+             * Executa a mesclagem de todos os PDFs ordenados na lista
+             */
+            btnExecuteMerge.addEventListener('click', async () => {
+                if (isProcessing) return;
+
+                if (documentQueue.length === 0) {
+                    showToast('Adicione pelo menos um arquivo PDF antes de unificar.');
+                    return;
+                }
+
+                syncInputValues();
+                isProcessing = true;
+                btnExecuteMerge.disabled = true;
+                btnExecuteMerge.style.opacity = '0.7';
+                statOperationStatus.textContent = 'Processando unificação...';
+                showToast('Iniciando processamento e unificação dos PDFs...', 4000);
+
+                try {
+                    // Instancia um novo PDF consolidado
+                    const mergedDocument = await PDFLib.PDFDocument.create();
+
+                    for (let i = 0; i < documentQueue.length; i++) {
+                        const item = documentQueue[i];
+                        statOperationStatus.textContent = `Processando (${i + 1}/${documentQueue.length}): ${item.name}`;
+
+                        const arrayBuffer = await item.file.arrayBuffer();
+                        const loadedPdf = await PDFLib.PDFDocument.load(arrayBuffer);
+                        const totalDocumentPages = loadedPdf.getPageCount();
+
+                        const pagesToExtract = parseSelectedPageRanges(item.range, totalDocumentPages);
+                        const copiedPages = await mergedDocument.copyPages(loadedPdf, pagesToExtract);
+
+                        copiedPages.forEach(page => mergedDocument.addPage(page));
+                    }
+
+                    statOperationStatus.textContent = 'Gerando arquivo PDF final...';
+                    const finalPdfBytes = await mergedDocument.save();
+
+                    // Dispara o download automático no navegador
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                    const outputFileName = `Documento_Unificado_DIOF_${timestamp}.pdf`;
+                    triggerBlobDownload(finalPdfBytes, outputFileName, 'application/pdf');
+
+                    statOperationStatus.textContent = 'Concluído com Sucesso!';
+                    showToast(`PDF unificado com sucesso: ${outputFileName}`, 5000);
+                } catch (error) {
+                    console.error('Erro na execução do processo de mesclagem:', error);
+                    alert('Falha ao processar e unir os arquivos PDF. Verifique se algum arquivo está corrompido, protegido por senha ou inválido.');
+                    statOperationStatus.textContent = 'Falha na Operação';
+                    showToast('Ocorreu um erro no processamento dos arquivos.', 4000);
+                } finally {
+                    isProcessing = false;
+                    btnExecuteMerge.disabled = false;
+                    btnExecuteMerge.style.opacity = '1';
+                }
+            });
+
+            /**
+             * Gera e aciona o download de um arquivo binário no cliente
+             * @param {Uint8Array} bytes Conteúdo binário do PDF
+             * @param {string} fileName Nome do arquivo a ser salvo
+             * @param {string} mimeType Tipo MIME do arquivo
+             */
+            function triggerBlobDownload(bytes, fileName, mimeType) {
+                const blob = new Blob([bytes], { type: mimeType });
+                const blobUrl = URL.createObjectURL(blob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = blobUrl;
+                downloadLink.download = fileName;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(blobUrl);
+            }
+
+            // Inicialização da visualização padrão
+            renderQueue();
+
+        })();
     </script>
 </body>
 </html>
